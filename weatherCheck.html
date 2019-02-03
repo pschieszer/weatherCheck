@@ -52,6 +52,7 @@
 	</head>
 	<script>
 	const inHgPerPa = 0.0002953;
+    const COMMA = "%2C";
 	const hourFormat = { weekday: 'short', hour: 'numeric'};
 	const hourMinFormat = { weekday: 'short', hour: 'numeric', minute: 'numeric' };
 	
@@ -144,16 +145,35 @@
 		xmlHttp.setRequestHeader("accept", "application/geo+json");
 		xmlHttp.send();
 	};
+        
+    getPosition = callback => {
+        if ('geolocation' in navigator) {
+            navigator.geolocation.getCurrentPosition(x => callback(x.coords.latitude + COMMA + x.coords.longitude));
+        } else {
+            callback("38.7727235%2C-90.5298988");
+        }
+    };
+        
+    parseStationInfo = stationInfo => setText("locationName", stationInfo.properties.name);
+        
+    getMyConditions = stations => {
+        const closestStation = stations.features[0].properties.stationIdentifier;
+        startCall("https://api.weather.gov/stations/" + closestStation, parseStationInfo);
+		startCall("https://api.weather.gov/stations/" + closestStation + "/observations/latest", parseConditions);
+    }
+        
+    getStation = () => {
+        getPosition(pos => {
+            startCall("https://api.weather.gov/points/" + pos + "/stations", getMyConditions);
+            startCall("https://api.weather.gov/points/" + pos + "/forecast/hourly", parseForecast);
+        });
+    }
 		
-	window.onload = () => {
-		startCall("https://api.weather.gov/gridpoints/LSX/81,80/forecast/hourly", parseForecast);
-
-		startCall("https://api.weather.gov/stations/KSTL/observations/latest", parseConditions);
-	};
+	window.onload = getStation;
 	</script>
 	<body>
         <div class="conditions centered">
-            <div><h3>Weather</h3> (conditions as of <span id="currTime"></span>)</div>
+            <div><h3>Weather</h3> (conditions as of <span id="currTime"></span> @ <span id="locationName"></span>)</div>
             <div id="currTemp"></div>
             <div id="barometricPressure"></div>
         </div>
