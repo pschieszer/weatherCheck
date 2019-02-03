@@ -3,10 +3,12 @@
 	<head>
 		<meta charset="utf-8">
 		<title>Weather Viewer</title>
-
-		<link rel="stylesheet" media="screen" href="http://www.csszengarden.com/186/186.css">
 		<style type="text/css">
-		td {
+        * { margin:0; padding:0; }
+        body { background:#cadeb9; padding:0px 0px 0 32px; }
+        .intro { font:normal 13px/18px arial; }
+
+        td {
 			padding-left: .2rem;
 			padding-right: .2rem;
 			text-align: center;
@@ -43,6 +45,8 @@
 		img.title = img.alt = text;
 		return img;
 	};
+        
+    getDateRange = (start, end) => formatDate(start) + " to " + formatDate(end);
 	
 	addRow = (image, imageAlt, start, temp, end, wind) => {
 		const tableBody = document.getElementById("searchResults").children[0];
@@ -51,7 +55,7 @@
 			buildCell(buildImage(image, imageAlt)) : buildTextCell(image);
 		tr.appendChild(td);
 		
-		const elemTexts = [ formatDate(start), temp, formatDate(end), wind ];
+		const elemTexts = [ getDateRange(start, end), temp, wind ];
 		elemTexts.map(buildTextCell).forEach(x => tr.appendChild(x));
 		tableBody.appendChild(tr);
 	};
@@ -74,6 +78,10 @@
 	getFarenheit = x => (x * 9/5) + 32;
 	
 	setText = (tag, text) => document.getElementById(tag).innerText = text;
+        
+    getWindChill = windChill => (windChill < 31) ? ", " + windChill + "F wind chill" : "";
+    
+    getConditionsText = (desc, temp, windChill) => desc + ", " + temp + "F degrees" + getWindChill(windChill);
 
 	parseConditions = jsonResp => {
 		if (jsonResp.properties && jsonResp.properties.barometricPressure && jsonResp.properties.barometricPressure.value) {
@@ -81,8 +89,9 @@
 			setText("barometricPressure", formattedNum(inHg) + " inches Hg");
 			const windChill = formattedNum(getFarenheit(jsonResp.properties.windChill.value));
 			const currTemp = formattedNum(getFarenheit(jsonResp.properties.temperature.value));
-			setText("currTemp", jsonResp.properties.textDescription + ", " + currTemp + "F degrees, " + windChill + "F wind chill");
-			setText("currTime", "conditions as of " + formatDate(getDate(jsonResp.properties.timestamp), hourMinFormat));
+            const desc = jsonResp.properties.textDescription;
+			setText("currTemp", getConditionsText(desc, currTemp, windChill));
+			setText("currTime", formatDate(getDate(jsonResp.properties.timestamp), hourMinFormat));
 		}
 	};
 	
@@ -111,24 +120,16 @@
 		startCall("https://api.weather.gov/stations/KSTL/observations/latest", parseConditions);
 	};
 	</script>
-	<body id="css-zen-garden">
+	<body>
 		<div class="page-wrapper">
-			<section class="intro" id="zen-intro">
-				<header role="banner">
-					<h1>Weather</h1>
-					<h2>Weather St Louis</h2>
-				</header>
-
-				<div class="preamble" id="zen-preamble" role="article">
-					<h3>Weather</h3>
-					<p>
-					<div id="currTime"></div>
+			<section class="intro">
+				<div>
+					<div><h3>Weather</h3> (conditions as of <span id="currTime"></span>)</div>
 					<div id="currTemp"></div>
 					<div id="barometricPressure"></div>
 					<table id="searchResults">
 						<tbody />
 					</table>
-					</p>
 				</div>
 			</section>
 		</div>
