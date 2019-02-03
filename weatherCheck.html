@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>Weather Viewer</title>
+
+		<link rel="stylesheet" media="screen" href="http://www.csszengarden.com/186/186.css">
+		<style type="text/css">
+		td {
+			padding-left: .2rem;
+			padding-right: .2rem;
+			text-align: center;
+			border-bottom-style: ridge;
+			border-bottom-width: 1px;
+		}
+		</style>
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="author" content="Patrick Schieszer">
+		<meta name="description" content="Weather checker">
+		<meta name="robots" content="all">
+	</head>
+	<script>
+	const inHgPerPa = 0.0002953;
+	const hourFormat = { weekday: 'short', hour: 'numeric'};
+	const hourMinFormat = { weekday: 'short', hour: 'numeric', minute: 'numeric' };
+	
+	getDateString = (date, dateFormat) => new Intl.DateTimeFormat('en-US', dateFormat).format(date);
+	
+	formatDate = (date, dateFormat = hourFormat) => (date instanceof Date) ? getDateString(date, dateFormat) : date;
+	
+	buildCell = x => {
+		const td = document.createElement('TD');
+		td.appendChild(x);
+		return td;
+	};
+	
+	buildTextCell = x => buildCell(document.createTextNode(x));
+	
+	buildImage = (src, text) => {
+		const img = new Image();
+		img.src = src;
+		img.title = img.alt = text;
+		return img;
+	};
+	
+	addRow = (image, imageAlt, start, temp, end, wind) => {
+		const tableBody = document.getElementById("searchResults").children[0];
+		const tr = document.createElement('TR');
+		const td = (image && image.length > 0) ? 
+			buildCell(buildImage(image, imageAlt)) : buildTextCell(image);
+		tr.appendChild(td);
+		
+		const elemTexts = [ formatDate(start), temp, formatDate(end), wind ];
+		elemTexts.map(buildTextCell).forEach(x => tr.appendChild(x));
+		tableBody.appendChild(tr);
+	};
+	
+	getDate = strDate => new Date(strDate);
+	
+	getWind = period => period.windDirection + " " + period.windSpeed;
+
+	parseForecast = jsonResp => {
+		addRow("", undefined, "Start", "Temp", "End", "Wind");
+		if (jsonResp.properties && jsonResp.properties.periods) {
+			jsonResp.properties.periods.forEach(currPeriod =>
+				addRow(currPeriod.icon, currPeriod.shortForecast, getDate(currPeriod.startTime),
+				       currPeriod.temperature, getDate(currPeriod.endTime), getWind(currPeriod)));
+		}
+	};
+	
+	formattedNum = x => Number.parseFloat(x).toFixed(2);
+	
+	getFarenheit = x => (x * 9/5) + 32;
+	
+	setText = (tag, text) => document.getElementById(tag).innerText = text;
+
+	parseConditions = jsonResp => {
+		if (jsonResp.properties && jsonResp.properties.barometricPressure && jsonResp.properties.barometricPressure.value) {
+			const inHg = jsonResp.properties.barometricPressure.value * inHgPerPa;
+			setText("barometricPressure", formattedNum(inHg) + " inches Hg");
+			const windChill = formattedNum(getFarenheit(jsonResp.properties.windChill.value));
+			const currTemp = formattedNum(getFarenheit(jsonResp.properties.temperature.value));
+			setText("currTemp", jsonResp.properties.textDescription + ", " + currTemp + "F degrees, " + windChill + "F wind chill");
+			setText("currTime", "conditions as of " + formatDate(getDate(jsonResp.properties.timestamp), hourMinFormat));
+		}
+	};
+	
+	stateChange = (ajax, callback) =>
+		() => {
+			if (ajax.readyState == 4){
+				if (ajax.status == 200) {
+					callback(JSON.parse(ajax.responseText));
+				} else {
+					console.log("Received HTTP code " + ajax.status + " on response");
+				}
+			}
+		};
+
+	startCall = (url, callback) => {
+		const xmlHttp = new XMLHttpRequest();
+		xmlHttp.onreadystatechange = stateChange(xmlHttp, callback);
+		xmlHttp.open("GET", url, true); // true for asynchronous
+		xmlHttp.setRequestHeader("accept", "application/geo+json");
+		xmlHttp.send();
+	};
+		
+	window.onload = () => {
+		startCall("https://api.weather.gov/gridpoints/LSX/81,80/forecast/hourly", parseForecast);
+
+		startCall("https://api.weather.gov/stations/KSTL/observations/latest", parseConditions);
+	};
+	</script>
+	<body id="css-zen-garden">
+		<div class="page-wrapper">
+			<section class="intro" id="zen-intro">
+				<header role="banner">
+					<h1>Weather</h1>
+					<h2>Weather St Louis</h2>
+				</header>
+
+				<div class="preamble" id="zen-preamble" role="article">
+					<h3>Weather</h3>
+					<p>
+					<div id="currTime"></div>
+					<div id="currTemp"></div>
+					<div id="barometricPressure"></div>
+					<table id="searchResults">
+						<tbody />
+					</table>
+					</p>
+				</div>
+			</section>
+		</div>
+	</body>
+</html>
