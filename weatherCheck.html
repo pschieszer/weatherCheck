@@ -147,10 +147,12 @@
 	};
         
     getPosition = callback => {
+        const DEF_LOC = "38.7727235%2C-90.5298988";
         if ('geolocation' in navigator) {
-            navigator.geolocation.getCurrentPosition(x => callback(x.coords.latitude + COMMA + x.coords.longitude));
+            navigator.geolocation.getCurrentPosition(x => callback(x.coords.latitude + COMMA + x.coords.longitude),
+                                                     err => callback(DEF_LOC));
         } else {
-            callback("38.7727235%2C-90.5298988");
+            callback(DEF_LOC);
         }
     };
         
