@@ -53,6 +53,7 @@
 	<script>
 	const inHgPerPa = 0.0002953;
     const COMMA = "%2C";
+    const HOME_LOC = "38.7727235,-90.5298988";
 	const hourFormat = { weekday: 'short', hour: 'numeric'};
 	const hourMinFormat = { weekday: 'short', hour: 'numeric', minute: 'numeric' };
 	
@@ -147,8 +148,9 @@
 	};
         
     getPosition = callback => {
-        const DEF_LOC = "38.7727235%2C-90.5298988";
-        if ('geolocation' in navigator) {
+        const enteredLoc = document.getElementById("currLocation").value;
+        const DEF_LOC = (enteredLoc) ? enteredLoc : HOME_LOC;
+        if (!enteredLoc && 'geolocation' in navigator) {
             navigator.geolocation.getCurrentPosition(x => callback(x.coords.latitude + COMMA + x.coords.longitude),
                                                      err => callback(DEF_LOC));
         } else {
@@ -166,15 +168,24 @@
         
     getStation = () => {
         getPosition(pos => {
+            document.getElementById("currLocation").value = pos;
             startCall("https://api.weather.gov/points/" + pos + "/stations", getMyConditions);
             startCall("https://api.weather.gov/points/" + pos + "/forecast/hourly", parseForecast);
         });
     }
 		
-	window.onload = getStation;
+	window.onload = () => {
+        const button = document.querySelector('#refresh');
+        button.addEventListener('click', getStation);
+        const locField = document.querySelector('#currLocation');
+        locField.addEventListener('change', getStation);
+        getStation();
+    }
 	</script>
 	<body>
         <div class="conditions centered">
+            <label for="location">Location: </label><input type="text" id="currLocation" name="location">
+            <input type="button" value="Refresh" id="refresh">
             <div><h3>Weather</h3> (conditions as of <span id="currTime"></span> @ <span id="locationName"></span>)</div>
             <div id="currTemp"></div>
             <div id="barometricPressure"></div>
