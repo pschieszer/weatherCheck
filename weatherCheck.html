@@ -5,7 +5,16 @@
 		<title>Weather Viewer</title>
 		<style type="text/css">
         * { margin:0; padding:0; }
-        body { background:#cadeb9; padding:0px 0px 0 32px; }
+        body {
+            background:#cadeb9;
+            padding:0px 0px 0 32px;
+            color: white;
+            font-size: 20px;
+            text-shadow:
+                0.07em 0 black, 0 0.07em black,
+                -0.07em 0 black, 0 -0.07em black;
+        }
+
         .intro { font:normal 13px/18px arial; }
 
         td {
@@ -83,7 +92,16 @@
     
     getConditionsText = (desc, temp, windChill) => desc + ", " + temp + "F degrees" + getWindChill(windChill);
 
-	parseConditions = jsonResp => {
+    setImage = imgSrc => {
+        document.body.style.backgroundImage = "url(" + imgSrc + ")";
+        document.body.style.backgroundRepeat = "no-repeat";
+        document.body.style.backgroundAttachment = "fixed";
+        document.body.style.backgroundPositionX = "center";
+        document.body.style.backgroundPositionY = "center";
+        document.body.style.backgroundSize = "cover";
+    };
+
+    parseConditions = jsonResp => {
 		if (jsonResp.properties && jsonResp.properties.barometricPressure && jsonResp.properties.barometricPressure.value) {
 			const inHg = jsonResp.properties.barometricPressure.value * inHgPerPa;
 			setText("barometricPressure", formattedNum(inHg) + " inches Hg");
@@ -92,6 +110,7 @@
             const desc = jsonResp.properties.textDescription;
 			setText("currTemp", getConditionsText(desc, currTemp, windChill));
 			setText("currTime", formatDate(getDate(jsonResp.properties.timestamp), hourMinFormat));
+            setImage(jsonResp.properties.icon);
 		}
 	};
 	
