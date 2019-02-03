@@ -167,6 +167,9 @@
     }
         
     getStation = () => {
+        const tableBody = document.getElementById("searchResults").children[0];
+        const rowCount = tableBody.children.length;
+        if (rowCount > 0) Array.from(Array(rowCount)).forEach(x => tableBody.deleteRow(0));
         getPosition(pos => {
             document.getElementById("currLocation").value = pos;
             startCall("https://api.weather.gov/points/" + pos + "/stations", getMyConditions);
