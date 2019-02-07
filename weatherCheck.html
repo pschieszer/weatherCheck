@@ -22,6 +22,19 @@
             font: 18px sans-serif;
         }
 
+        #refresh {
+            border: 0;
+            line-height: 2.5;
+            padding: 0 20px;
+            font-size: 1rem;
+            color: #fff;
+            text-shadow: 1px 1px 1px #000;
+            border-radius: 20px;
+            background-color: rgba(220, 0, 0, 1);
+            background-image: linear-gradient(to top left, rgba(0, 0, 0, .2), rgba(0, 0, 0, .2) 30%, rgba(0, 0, 0, 0));
+            box-shadow: inset 2px 2px 3px rgba(255, 255, 255, .6), inset -2px -2px 3px rgba(0, 0, 0, .6);
+        }
+
         .centered {
             width: 100%;
             text-align: center;
@@ -34,9 +47,8 @@
         }
         
         #searchResults {
-            float: left;
             position:relative;
-            top: 100px;
+            top: 9.5rem;
         }
 
         td {
@@ -52,10 +64,10 @@
 	</head>
 	<script>
 	const inHgPerPa = 0.0002953;
-    const COMMA = "%2C";
     const HOME_LOC = "38.6270074,-90.1912848";
 	const hourFormat = { weekday: 'short', hour: 'numeric'};
 	const hourMinFormat = { weekday: 'short', hour: 'numeric', minute: 'numeric' };
+    const geoOptions = { headers: { "accept": "application/geo+json" } };
 	
 	getDateString = (date, dateFormat) => new Intl.DateTimeFormat('en-US', dateFormat).format(date);
 	
@@ -128,30 +140,14 @@
 		}
 	};
 	
-	stateChange = (ajax, callback) =>
-		() => {
-			if (ajax.readyState == 4){
-				if (ajax.status == 200) {
-					callback(JSON.parse(ajax.responseText));
-				} else {
-					console.log("Received HTTP code " + ajax.status + " on response");
-				}
-			}
-		};
-
-	startCall = (url, callback) => {
-		const xmlHttp = new XMLHttpRequest();
-		xmlHttp.onreadystatechange = stateChange(xmlHttp, callback);
-		xmlHttp.open("GET", url, true); // true for asynchronous
-		xmlHttp.setRequestHeader("accept", "application/geo+json");
-		xmlHttp.send();
-	};
+	startCall = (url, callback) =>
+        fetch(url, geoOptions).then(response => response.json().then(callback));
         
     getPosition = callback => {
         const enteredLoc = document.getElementById("currLocation").value;
         const DEF_LOC = (enteredLoc) ? enteredLoc : HOME_LOC;
         if (!enteredLoc && 'geolocation' in navigator) {
-            navigator.geolocation.getCurrentPosition(x => callback(x.coords.latitude + COMMA + x.coords.longitude),
+            navigator.geolocation.getCurrentPosition(x => callback(x.coords.latitude + "," + x.coords.longitude),
                                                      err => callback(DEF_LOC));
         } else {
             callback(DEF_LOC);
@@ -178,10 +174,8 @@
     }
 		
 	window.onload = () => {
-        const button = document.querySelector('#refresh');
-        button.addEventListener('click', getStation);
-        const locField = document.querySelector('#currLocation');
-        locField.addEventListener('change', getStation);
+        document.querySelector('#refresh').addEventListener('click', getStation);
+        document.querySelector('#currLocation').addEventListener('change', getStation);
         getStation();
     }
 	</script>
