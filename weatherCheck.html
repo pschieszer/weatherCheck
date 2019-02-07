@@ -141,7 +141,7 @@
 	};
 	
 	startCall = (url, callback) =>
-        fetch(url, geoOptions).then(response => response.json().then(callback));
+        fetch(url, geoOptions).then(response => response.json()).then(callback);
         
     getPosition = callback => {
         const enteredLoc = document.getElementById("currLocation").value;
