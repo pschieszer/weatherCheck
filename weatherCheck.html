@@ -42,13 +42,12 @@
         
         .conditions {
             z-index:2;
-            height:100px;
+			background-color: hsla(77, 65%, 45%, 0.44);
             position: fixed;   
         }
         
         #searchResults {
             position:relative;
-            top: 9.5rem;
         }
 
         td {
@@ -64,6 +63,7 @@
 	</head>
 	<script>
 	const inHgPerPa = 0.0002953;
+	const inPerMeter = 39.3701;
     const HOME_LOC = "38.6270074,-90.1912848";
 	const hourFormat = { weekday: 'short', hour: 'numeric'};
 	const hourMinFormat = { weekday: 'short', hour: 'numeric', minute: 'numeric' };
@@ -106,10 +106,10 @@
 	
 	getWind = period => period.windDirection + " " + period.windSpeed;
 
-	parseForecast = jsonResp => {
+	parseForecast = forecast => {
 		addRow("", undefined, "Start", "Temp", "End", "Wind");
-		if (jsonResp.properties && jsonResp.properties.periods) {
-			jsonResp.properties.periods.forEach(currPeriod =>
+		if (forecast.properties && forecast.properties.periods) {
+			forecast.properties.periods.forEach(currPeriod =>
 				addRow(currPeriod.icon, currPeriod.shortForecast, getDate(currPeriod.startTime),
 				       currPeriod.temperature, getDate(currPeriod.endTime), getWind(currPeriod)));
 		}
@@ -127,16 +127,43 @@
 
     setImage = imgSrc => document.body.style.backgroundImage = "url(" + imgSrc + ")";
 
-    parseConditions = jsonResp => {
-		if (jsonResp.properties && jsonResp.properties.barometricPressure && jsonResp.properties.barometricPressure.value) {
-			const inHg = jsonResp.properties.barometricPressure.value * inHgPerPa;
-			setText("barometricPressure", formattedNum(inHg) + " inches Hg");
-			const windChill = formattedNum(getFarenheit(jsonResp.properties.windChill.value));
-			const currTemp = formattedNum(getFarenheit(jsonResp.properties.temperature.value));
-            const desc = jsonResp.properties.textDescription;
+	getInches = meters => meters * inPerMeter;
+	
+	formatPrecipitation = properties => {
+		var result = "";
+		if (properties.precipitationLastHour.value) {
+			result += formattedNum(getInches(properties.precipitationLastHour.value)) + "in precipitation in past hour";
+		}
+		if (properties.precipitationLast3Hours.value) {
+			if (result.length() > 0) result += ", ";
+			result += formattedNum(getInches(properties.precipitationLast3Hours.value)) + "in precipitation in past 3 hours";
+		}
+		if (properties.precipitationLast6Hours.value) {
+			if (result.length() > 0) result += ", ";
+			result += formattedNum(getInches(properties.precipitationLast6Hours.value)) + "in precipitation in past 6 hours";
+		}
+		return result;
+	};
+
+    parseConditions = conditions => {
+		if (conditions.properties && conditions.properties.barometricPressure &&
+            conditions.properties.barometricPressure.value) {
+			const inHg = conditions.properties.barometricPressure.value * inHgPerPa;
+			setText("barometricPressure", formattedNum(inHg) + " inches Hg, " +
+                    formattedNum(conditions.properties.relativeHumidity.value) + "% relative humidity");
+            
+			const windChill = formattedNum(getFarenheit(conditions.properties.windChill.value));
+			const currTemp = formattedNum(getFarenheit(conditions.properties.temperature.value));
+            const desc = conditions.properties.textDescription;
 			setText("currTemp", getConditionsText(desc, currTemp, windChill));
-			setText("currTime", formatDate(getDate(jsonResp.properties.timestamp), hourMinFormat));
-            setImage(jsonResp.properties.icon.replace("medium", "large"));
+            
+			setText("currTime", formatDate(getDate(conditions.properties.timestamp), hourMinFormat));
+
+			setText("precipitation", formatPrecipitation(conditions.properties));
+
+            setImage(conditions.properties.icon.replace("medium", "large"));
+
+            document.querySelector('#searchResults').style.top = (document.querySelector('#currLocation').parentElement.offsetHeight + 15) + "px";
 		}
 	};
 	
@@ -156,15 +183,24 @@
         
     parseStationInfo = stationInfo => setText("locationName", stationInfo.properties.name);
         
-    getMyConditions = stations => {
-        const closestStation = stations.features[0].properties.stationIdentifier;
-        startCall("https://api.weather.gov/stations/" + closestStation, parseStationInfo);
-		startCall("https://api.weather.gov/stations/" + closestStation + "/observations/latest", parseConditions);
-    }
-    
+	getDistance = (here, far) => Math.sqrt(Math.pow((here[0] - far[0]), 2) + Math.pow((here[1] - far[1]), 2));
+	
+	getClosestStation = (pos, stations) => {
+		const distStations = stations.map(x => ({ src: x, dist: getDistance(pos, x.geometry.coordinates)}));
+		const minDist = Math.min(...distStations.map(x => x.dist));
+		return distStations.filter(x => x.dist == minDist).map(x => x.src).shift();
+	};
+        
+    getMyConditions = srcPos =>
+		stations => {
+			const closestStation = getClosestStation(srcPos, stations.features).properties.stationIdentifier;
+			startCall("https://api.weather.gov/stations/" + closestStation, parseStationInfo);
+			startCall("https://api.weather.gov/stations/" + closestStation + "/observations/latest", parseConditions);
+		};
+	
     findStationByPosition = pos => {
         document.getElementById("currLocation").value = pos;
-        startCall("https://api.weather.gov/points/" + pos + "/stations", getMyConditions);
+		startCall("https://api.weather.gov/points/" + pos + "/stations", getMyConditions(pos.split(",").reverse()));
         startCall("https://api.weather.gov/points/" + pos + "/forecast/hourly", parseForecast);
     };
         
@@ -188,6 +224,7 @@
             <div><h3>Weather</h3> (conditions as of <span id="currTime"></span> @ <span id="locationName"></span>)</div>
             <div id="currTemp"></div>
             <div id="barometricPressure"></div>
+            <div id="precipitation"></div>
         </div>
         <table id="searchResults" class="centered">
             <tbody />
