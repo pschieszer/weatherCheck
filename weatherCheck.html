@@ -45,7 +45,7 @@
 			background-color: hsla(77, 65%, 45%, 0.44);
             position: fixed;   
         }
-        
+
         #searchResults {
             position:relative;
         }
@@ -91,7 +91,7 @@
     getDateRange = (start, end) => formatDate(start) + " to " + formatDate(end);
 	
 	addRow = (image, imageAlt, start, temp, end, wind) => {
-		const tableBody = document.getElementById("searchResults").children[0];
+		const tableBody = document.getElementById("data");
 		const tr = document.createElement('TR');
 		const td = (image && image.length > 0) ? 
 			buildCell(buildImage(image, imageAlt)) : buildTextCell(image);
@@ -107,7 +107,6 @@
 	getWind = period => period.windDirection + " " + period.windSpeed;
 
 	parseForecast = forecast => {
-		addRow("", undefined, "Start", "Temp", "End", "Wind");
 		if (forecast.properties && forecast.properties.periods) {
 			forecast.properties.periods.forEach(currPeriod =>
 				addRow(currPeriod.icon, currPeriod.shortForecast, getDate(currPeriod.startTime),
@@ -181,21 +180,35 @@
         }
     };
         
-    parseStationInfo = stationInfo => setText("locationName", stationInfo.properties.name);
-        
 	getDistance = (here, far) => Math.sqrt(Math.pow((here[0] - far[0]), 2) + Math.pow((here[1] - far[1]), 2));
 	
-	getClosestStation = (pos, stations) => {
-		const distStations = stations.map(x => ({ src: x, dist: getDistance(pos, x.geometry.coordinates)}));
-		const minDist = Math.min(...distStations.map(x => x.dist));
-		return distStations.filter(x => x.dist == minDist).map(x => x.src).shift();
-	};
+    compDist = (l, r) => (l.dist < r.dist) ? -1 : (l.dist > r.dist) ? 1 : 0;
+        
+	getClosestStation = (pos, stations) =>
+        stations
+        .map(x => ({ src: x, dist: getDistance(pos, x.geometry.coordinates)}))
+        .sort(compDist)
+        .map(x => x.src);
+    
+    loadOption = (opt, { geometry: { coordinates: [long, lat] }, properties: { name: statName } }) => {
+        opt.value = lat + "," + long;
+        opt.text = statName;
+        return opt;
+    };
+        
+    buildOption = station => loadOption(document.createElement("option"), station);
+        
+    buildAlternates = distStations => {
+        var locs = document.getElementById("locations");
+        if (locs.options.length) Array.from(Array(locs.options.length)).forEach(x => locs.remove(0));
+        distStations.map(buildOption).forEach(opt => locs.add(opt, null));
+    };
         
     getMyConditions = srcPos =>
 		stations => {
-			const closestStation = getClosestStation(srcPos, stations.features).properties.stationIdentifier;
-			startCall("https://api.weather.gov/stations/" + closestStation, parseStationInfo);
-			startCall("https://api.weather.gov/stations/" + closestStation + "/observations/latest", parseConditions);
+            const distStations = getClosestStation(srcPos, stations.features);
+            buildAlternates(distStations);
+			startCall("https://api.weather.gov/stations/" + distStations[0].properties.stationIdentifier + "/observations/latest", parseConditions);
 		};
 	
     findStationByPosition = pos => {
@@ -205,15 +218,21 @@
     };
         
     getStation = () => {
-        const tableBody = document.getElementById("searchResults").children[0];
+        const tableBody = document.getElementById("data");
         const rowCount = tableBody.children.length;
         if (rowCount > 0) Array.from(Array(rowCount)).forEach(x => tableBody.deleteRow(0));
         getPosition(findStationByPosition);
-    }
+    };
+    
+    useSelectedLocation = x => {
+        document.getElementById("currLocation").value = document.getElementById("locations").value;
+        getStation();
+    };
 		
 	window.onload = () => {
         document.querySelector('#refresh').addEventListener('click', getStation);
         document.querySelector('#currLocation').addEventListener('change', getStation);
+        document.getElementById("locations").addEventListener('change', useSelectedLocation);
         getStation();
     }
 	</script>
@@ -221,13 +240,21 @@
         <div class="conditions centered">
             <label for="location">Location: </label><input type="text" id="currLocation" name="location">
             <input type="button" value="Refresh" id="refresh">
-            <div><h3>Weather</h3> (conditions as of <span id="currTime"></span> @ <span id="locationName"></span>)</div>
+            <div><h3>Weather</h3> (conditions as of <span id="currTime"></span> @ <select id="locations"></select>)</div>
             <div id="currTemp"></div>
             <div id="barometricPressure"></div>
             <div id="precipitation"></div>
         </div>
         <table id="searchResults" class="centered">
-            <tbody />
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Start to End</th>
+                    <th>Temp</th>
+                    <th>Wind</th>
+                </tr>
+            </thead>
+            <tbody id="data" />
         </table>
 	</body>
 </html>
