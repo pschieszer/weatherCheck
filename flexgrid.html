@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>Flexgrid</title>
+		<style type="text/css">
+            .flex-grid {
+              display: flex;
+            }
+            .col {
+              flex: 1;
+            }
+           .centered {
+                width: 100%;
+                text-align: center;
+            }
+		</style>
+
+		<meta name="author" content="Patrick Schieszer">
+		<meta name="description" content="Weather checker">
+		<meta name="robots" content="all">
+	</head>
+	<script>
+        const startState = 'a';
+        const hilbert_map = [
+            { currentState: 'a', inX: 0, inY: 0, outBit: 0, nextState: 'd'},
+            { currentState: 'a', inX: 0, inY: 1, outBit: 1, nextState: 'a'},
+            { currentState: 'a', inX: 1, inY: 0, outBit: 3, nextState: 'b'},
+            { currentState: 'a', inX: 1, inY: 1, outBit: 2, nextState: 'a'},
+            { currentState: 'b', inX: 0, inY: 0, outBit: 2, nextState: 'b'},
+            { currentState: 'b', inX: 0, inY: 1, outBit: 1, nextState: 'b'},
+            { currentState: 'b', inX: 1, inY: 0, outBit: 3, nextState: 'a'},
+            { currentState: 'b', inX: 1, inY: 1, outBit: 0, nextState: 'c'},
+            { currentState: 'c', inX: 0, inY: 0, outBit: 2, nextState: 'c'},
+            { currentState: 'c', inX: 0, inY: 1, outBit: 3, nextState: 'd'},
+            { currentState: 'c', inX: 1, inY: 0, outBit: 1, nextState: 'c'},
+            { currentState: 'c', inX: 1, inY: 1, outBit: 0, nextState: 'b'},
+            { currentState: 'd', inX: 0, inY: 0, outBit: 0, nextState: 'a'},
+            { currentState: 'd', inX: 0, inY: 1, outBit: 3, nextState: 'c'},
+            { currentState: 'd', inX: 1, inY: 0, outBit: 1, nextState: 'd'},
+            { currentState: 'd', inX: 1, inY: 1, outBit: 2, nextState: 'd'}
+        ];
+        
+        mapToHilbert = ({x: x, y: y}, order = 16) => {
+            var currState = startState;
+            var position = 0;
+            var quad_position;
+            for (var currOrder = order - 1; currOrder > -1; currOrder--) {
+                position <<= 2;
+                var quad_x = (x & (1 << currOrder)) ? 1 : 0;
+                var quad_y = (y & (1 << currOrder)) ? 1 : 0;
+                var currEnt =
+                    hilbert_map.filter(x => x.currentState == currState && x.inX == quad_x && x.inY == quad_y).shift();
+                currState = currEnt.nextState;
+                quad_position = currEnt.outBit; 
+                position |= quad_position;
+            }
+            return position;
+        };
+        
+        mapFromHilbert = (num, order = 16) => {
+            order = Math.min(30, order);
+            var currState = startState;
+            var currNum = num;
+            var result = { x: 0, y: 0 };
+            // running the mapTo algorithm "backwards", so the X and Y are flopped here
+            for (var currOrder = order; currOrder > -1; currOrder -= 2) {
+                result.x <<= 1;
+                result.y <<= 1;
+                currNum = (num & (3 << currOrder)) >> currOrder;
+                var currEnt =
+                    hilbert_map.filter(x => x.currentState == currState && x.outBit == currNum).shift();
+                currState = currEnt.nextState;
+                result.x |= (order == 30) ? currEnt.inX : currEnt.inY;
+                result.y |= (order == 30) ? currEnt.inY : currEnt.inX;
+            };
+            return result;
+        };
+        
+        gray = (n, k) => {
+            if (k === undefined) k = 2;
+            if (n === 0) return [];
+
+            var codes = [];
+            var max = Math.pow(k, n);
+
+            for (var i = 0; i < max; i++) {
+                var res = 0;
+                var shift = 0;
+
+                for (var j = n - 1; j >= 0; j--) {
+                    res <<= 1;
+                    var x = (digit(i, k, j) + shift) % k;
+                    shift += k - x;
+                    res |= x;
+                }
+                codes.push(res);
+            }
+            return codes;
+        };
+
+        digit = (n, radix, i) => Math.floor(n / Math.pow(radix, i)) % radix;
+        
+        const grayColors = gray(8, 2);
+        const hueScale = 359 / 255;
+        
+        getCell = (x, y, order) => {
+            const result = document.createElement("DIV");
+            const hil = mapToHilbert({x: x, y: y}, order);
+            result.className = "col centered";
+            result.id = "cell" + x + "," + y;
+            result.innerText = hil;
+            const grayColor = grayColors[Number(hil)];
+            result.style.setProperty('color', 'hsl(' + (hueScale * hil) + ', ' + (hil ^ grayColor) + '%, 45%)');
+            return result;
+        };
+        
+        buildRow = (rowNdx, width, order) => {
+            var result = document.createElement("DIV");
+            result.className = "flex-grid";
+            result.id = "row" + rowNdx;
+            for (var x = 0; x < width; x++) {
+                result.appendChild(getCell(x, rowNdx, order));
+            }
+            return result;
+        };
+        
+        buildHilbert = (grid, height, width) => {
+            while (grid.firstChild) grid.removeChild(grid.firstChild);
+            const order = (Number(height) + Number(width));
+
+            for (var y = 0; y < height; y++) {
+                grid.appendChild(buildRow(y, width, order));
+            }
+        };
+        
+        setTestResult = (num, height, width) => {
+            const order = (Number(height) + Number(width)) * 2;
+            const result = mapFromHilbert(Number(num), order);
+            document.getElementById("testResult").innerText = JSON.stringify(result);
+            const currCell = document.getElementById("cell" + result.x + "," + result.y);
+            if (currCell && currCell.innerText) {
+                const color = (Number(currCell.innerText) == num) ? "green" : "red";
+                currCell.style.backgroundColor = color;
+            }
+        };
+        
+        window.onload = () => {
+            const grid = document.getElementById("hilbert-grid");
+            buildHilbert(grid, 16, 16);
+            const height = document.getElementById("height");
+            const width = document.getElementById("width");
+            height.addEventListener('change', () => buildHilbert(grid, height.value, width.value));
+            width.addEventListener('change', () => buildHilbert(grid, height.value, width.value));
+            height.value = grid.childElementCount;
+            width.value = grid.children[0].childElementCount;
+            const testNum = document.getElementById('testNum');
+            testNum.addEventListener('change', () => setTestResult(testNum.value, height.value, width.value));
+        };
+	</script>
+	<body>
+        <div class="flex-grid">
+            <div class="col centered">
+                <label for="height">Number of Rows: </label>
+                <select id="height">
+                    <option value="2">2</option>
+                    <option value="4">4</option>
+                    <option value="6">6</option>
+                    <option value="8">8</option>
+                    <option value="10">10</option>
+                    <option value="12">12</option>
+                    <option value="14">14</option>
+                    <option value="16">16</option>
+                </select>
+            </div>
+            <div class="col centered">
+                <label for="width">Number of Cols: </label>
+                <select id="width">
+                    <option value="2">2</option>
+                    <option value="4">4</option>
+                    <option value="6">6</option>
+                    <option value="8">8</option>
+                    <option value="10">10</option>
+                    <option value="12">12</option>
+                    <option value="14">14</option>
+                    <option value="16">16</option>
+                </select>
+            </div>
+        </div>
+        <div id="hilbert-grid">
+        </div>
+        <div class="flex-grid">
+            <input type="text" id="testNum" class="col centered" name="testNum">
+            <div id="testResult" class="flex-grid"></div>
+        </div>
+	</body>
+</html>
