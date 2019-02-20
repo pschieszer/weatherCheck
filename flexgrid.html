@@ -111,7 +111,7 @@
             result.id = "cell" + x + "," + y;
             result.innerText = hil;
             const grayColor = grayColors[Number(hil)];
-            result.style.setProperty('color', 'hsl(' + (hueScale * hil) + ', ' + (hil ^ grayColor) + '%, 45%)');
+            result.style.setProperty('color', 'hsl(' + (hueScale * hil) + ', 100%, 50%)');
             return result;
         };
         
