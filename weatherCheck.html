@@ -67,7 +67,8 @@
     const HOME_LOC = "38.6270074,-90.1912848";
 	const hourFormat = { weekday: 'short', hour: 'numeric'};
 	const hourMinFormat = { weekday: 'short', hour: 'numeric', minute: 'numeric' };
-    const geoOptions = { headers: { "accept": "application/geo+json" } };
+    const geoHeaders = { headers: { "accept": "application/geo+json" } };
+    const geoOptions = { maximumAge: 5 * 60 * 1000, timeout: 5 * 1000 };
 	
 	getDateString = (date, dateFormat) => new Intl.DateTimeFormat('en-US', dateFormat).format(date);
 	
@@ -134,11 +135,11 @@
 			result += formattedNum(getInches(properties.precipitationLastHour.value)) + "in precipitation in past hour";
 		}
 		if (properties.precipitationLast3Hours.value) {
-			if (result.length() > 0) result += ", ";
+			if (result) result += ", ";
 			result += formattedNum(getInches(properties.precipitationLast3Hours.value)) + "in precipitation in past 3 hours";
 		}
 		if (properties.precipitationLast6Hours.value) {
-			if (result.length() > 0) result += ", ";
+			if (result) result += ", ";
 			result += formattedNum(getInches(properties.precipitationLast6Hours.value)) + "in precipitation in past 6 hours";
 		}
 		return result;
@@ -167,14 +168,14 @@
 	};
 	
 	startCall = (url, callback) =>
-        fetch(url, geoOptions).then(response => response.json()).then(callback);
+        fetch(url, geoHeaders).then(response => response.json()).then(callback);
         
     getPosition = callback => {
         const enteredLoc = document.getElementById("currLocation").value;
         const DEF_LOC = (enteredLoc) ? enteredLoc : HOME_LOC;
-        if (!enteredLoc && 'geolocation' in navigator) {
+        if (!enteredLoc && ('geolocation' in navigator || navigator.geolocation)) {
             navigator.geolocation.getCurrentPosition(x => callback(x.coords.latitude + "," + x.coords.longitude),
-                                                     err => callback(DEF_LOC));
+                                                     err => callback(DEF_LOC), geoOptions);
         } else {
             callback(DEF_LOC);
         }
