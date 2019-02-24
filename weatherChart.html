@@ -227,11 +227,11 @@
 				result += formattedNum(getInches(properties.precipitationLastHour.value)) + "in precipitation in past hour";
 			}
 			if (properties.precipitationLast3Hours.value) {
-				if (result.length() > 0) result += ", ";
+				if (result) result += ", ";
 				result += formattedNum(getInches(properties.precipitationLast3Hours.value)) + "in precipitation in past 3 hours";
 			}
 			if (properties.precipitationLast6Hours.value) {
-				if (result.length() > 0) result += ", ";
+				if (result) result += ", ";
 				result += formattedNum(getInches(properties.precipitationLast6Hours.value)) + "in precipitation in past 6 hours";
 			}
 			return result;
