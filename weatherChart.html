@@ -56,23 +56,9 @@
 				text-align: center;
 			}
 
-			rect.bordered {
+			image.bordered {
 				stroke: #E6E6E6;
 				stroke-width:2px;
-			}
-
-			text.mono {
-				font-size: 9pt;
-				font-family: Consolas, courier;
-				fill: #aaa;
-			}
-
-			text.axis-workweek {
-				fill: #000;
-			}
-
-			text.axis-worktime {
-				fill: #000;
 			}
 		</style>
 		<script src="http://d3js.org/d3.v3.js"></script>
@@ -115,7 +101,7 @@
 			let margin = { top: 50, right: 0, bottom: 100, left: 30  },
 				width = window.innerWidth - margin.left - margin.right,
 				height = window.innerHeight - topOffset - margin.top - margin.bottom,
-				gridSize = Math.floor(width / 24),
+				gridSize = Math.floor(width / 26),
 				legendElementWidth = gridSize * 2,
 				buckets = 9,
 				colors = ["#ffffd9","#edf8b1","#c7e9b4","#7fcdbb","#41b6c4","#1d91c0","#225ea8","#253494","#081d58"], // alternatively colorbrewer.YlGnBu[9]
@@ -129,19 +115,21 @@
 			let dayLabels = svg.selectAll(".dayLabel")
 				.data(days).enter().append("text")
                 .text(d => d)
-                .attr("x", 0)
-                .attr("y", (d, i) => i * gridSize)
-				.style("text-anchor", "end")
-				.attr("class", (d, i) => ((i >= 0 && i <= 4) ? "dayLabel mono axis axis-workweek" : "dayLabel mono axis"));
+                .attr("x", gridSize)
+                .attr("y", (d, i) => (i + 1) * gridSize)
+				.style("text-anchor", "end").style("color", "white")
+                .style("text-shadow", "-0.05em -0.05em black, -0.05em 0.05em black, 0.05em -0.05em black, 0.05em 0.05em black")
+                .style("font", "12px sans-serif");
 				
 			let timeLabels = svg.selectAll(".timeLabel")
 				.data(times)
 				.enter().append("text")
 				.text(d => d)
-				.attr("x", (d, i) => i * gridSize)
-				.attr("y", 0)
-				.style("text-anchor", "middle")
-				.attr("class", (d, i) => ((i >= 7 && i <= 16) ? "timeLabel mono axis axis-worktime" : "timeLabel mono axis"));
+				.attr("x", (d, i) => (i + 1) * gridSize)
+				.attr("y", gridSize)
+				.style("text-anchor", "middle").style("color", "white")
+                .style("text-shadow", "-0.05em -0.05em black, -0.05em 0.05em black, 0.05em -0.05em black, 0.05em 0.05em black")
+                .style("font", "12px sans-serif");
 				
 			//let colorScale = d3.scale.quantile()
 			//	.domain([0, buckets - 1, d3.max(data, d => d.value)])
@@ -152,7 +140,7 @@
 			cards.append("title");
 			
 			cards.enter()
-                .append("image").attr("x", d => d.hour * gridSize).attr("y", d => d.day * gridSize)
+                .append("image").attr("x", d => (d.hour + 1) * gridSize).attr("y", d => (d.day + 1) * gridSize)
                 .attr("rx", 4).attr("ry", 4)
                 .attr("class", "hour bordered")
                 .attr("width", gridSize).attr("height", gridSize)
@@ -312,7 +300,7 @@
 		};
 		
 		getStation = () => {
-			document.getElementById("searchResults").innerHtml = '';
+			document.getElementById("searchResults").innerText = '';
 			getPosition(findStationByPosition);
 		};
 		
