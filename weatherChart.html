@@ -76,24 +76,24 @@
 		const hourMinFormat = { weekday: 'short', hour: 'numeric', minute: 'numeric' };
 		const geoHeaders = { headers: { "accept": "application/geo+json" } };
 		const geoOptions = { maximumAge: 5 * 60 * 1000, timeout: 5 * 1000 };
-        
-        function HourGrid(forecast) {
-            this.forecast = forecast;
-            this.dayOffs = [0, 24, 48, 72, 96, 120, 144];
-            this.offset = (-1) * new Date(this.forecast[0].startTime).getHours();
-            this.findNdx = (day, hour) => (day * 24) + hour;
+		
+		function HourGrid(forecast) {
+			this.forecast = forecast;
+			this.dayOffs = [0, 24, 48, 72, 96, 120, 144];
+			this.offset = (-1) * new Date(this.forecast[0].startTime).getHours();
+			this.findNdx = (day, hour) => (day * 24) + hour;
             this.getHour = (day, hour) => {
-                let forecastNdx = this.offset + this.findNdx(day, hour);
-                return (forecastNdx > -1 && forecastNdx < forecast.length) ?
-                    { 'day': day, 'hour': hour, ...forecast[forecastNdx] } :
-                    { 'day': day, 'hour': hour };
-            };
-            this.getDayNames = () => this.dayOffs.map(x => formatDate(new Date(forecast[x].startTime), dowFormat));
+				let forecastNdx = this.offset + this.findNdx(day, hour);
+				return (forecastNdx > -1 && forecastNdx < forecast.length) ?
+					{ 'day': day, 'hour': hour, foreNdx: forecastNdx, ...forecast[forecastNdx] } :
+					{ 'day': day, 'hour': hour, foreNdx: forecastNdx };
+			};
+			this.getDayNames = () => this.dayOffs.map(x => formatDate(new Date(forecast[x].startTime), dowFormat));
             this.getAllDays = function* () {
-                for (var day = 0; day < 7; day++)
-                    for (var hour = 0; hour < 24; hour++)
-                        yield this.getHour(day, hour);
-            };
+				for (var day = 0; day < 7; day++)
+					for (var hour = 0; hour < 24; hour++)
+						yield this.getHour(day, hour);
+			};
         }
 
 		heatmapChart = (chartId, forecast, topOffset) => {
@@ -102,9 +102,7 @@
 				width = window.innerWidth - margin.left - margin.right,
 				height = window.innerHeight - topOffset - margin.top - margin.bottom,
 				gridSize = Math.floor(width / 26),
-				legendElementWidth = gridSize * 2,
 				buckets = 9,
-				colors = ["#ffffd9","#edf8b1","#c7e9b4","#7fcdbb","#41b6c4","#1d91c0","#225ea8","#253494","#081d58"], // alternatively colorbrewer.YlGnBu[9]
 				days = foreGrid.getDayNames(),
 				times = ["mid", "1a", "2a", "3a", "4a", "5a", "6a", "7a", "8a", "9a", "10a", "11a", "noon", "1p", "2p", "3p", "4p", "5p", "6p", "7p", "8p", "9p", "10p", "11p"];
 				
@@ -115,25 +113,19 @@
 			let dayLabels = svg.selectAll(".dayLabel")
 				.data(days).enter().append("text")
                 .text(d => d)
-                .attr("x", gridSize)
-                .attr("y", (d, i) => (i + 1) * gridSize)
-				.style("text-anchor", "end").style("color", "white")
-                .style("text-shadow", "-0.05em -0.05em black, -0.05em 0.05em black, 0.05em -0.05em black, 0.05em 0.05em black")
+                .attr("x", gridSize / 2)
+                .attr("y", (d, i) => (i + 1.5) * gridSize)
+				.style("text-anchor", "end").style("fill", "white")
                 .style("font", "12px sans-serif");
 				
 			let timeLabels = svg.selectAll(".timeLabel")
 				.data(times)
 				.enter().append("text")
 				.text(d => d)
-				.attr("x", (d, i) => (i + 1) * gridSize)
-				.attr("y", gridSize)
-				.style("text-anchor", "middle").style("color", "white")
-                .style("text-shadow", "-0.05em -0.05em black, -0.05em 0.05em black, 0.05em -0.05em black, 0.05em 0.05em black")
+				.attr("x", (d, i) => (i + 1.5) * gridSize)
+				.attr("y", gridSize / 2)
+				.style("text-anchor", "middle").style("fill", "white")
                 .style("font", "12px sans-serif");
-				
-			//let colorScale = d3.scale.quantile()
-			//	.domain([0, buckets - 1, d3.max(data, d => d.value)])
-			//	.range(colors);
 				
 			let cards = svg.selectAll(".hour").data([...foreGrid.getAllDays()], d => formatDate(d.startTime));
 			
@@ -141,11 +133,27 @@
 			
 			cards.enter()
                 .append("image").attr("x", d => (d.hour + 1) * gridSize).attr("y", d => (d.day + 1) * gridSize)
-                .attr("rx", 4).attr("ry", 4)
+                .attr("rx", 4).attr("ry", 4).attr("id", d => "img" + d.day + "," + d.hour)
                 .attr("class", "hour bordered")
                 .attr("width", gridSize).attr("height", gridSize)
                 .attr("xlink:href", d => d.icon)
-                .attr("xlink:title", d => d.shortForecast + ", " + d.temperature);
+				.attr("onmouseover", d => "document.getElementById('forecast" + d.day + "," + d.hour + "').style.display = 'block'")
+				.attr("onmouseout", d => "document.getElementById('forecast" + d.day + "," + d.hour + "').style.display = 'none'")
+				.attr("ontouchstart", d => "document.getElementById('forecast" + d.day + "," + d.hour + "').style.display = 'block'")
+				.attr("ontouchend", d => "document.getElementById('forecast" + d.day + "," + d.hour + "').style.display = 'none'");
+			cards.enter().append("text").text(d => d.shortForecast)
+                .attr("x", d => (d.hour + 1.5) * gridSize).attr("y", (d, i) => (d.day + 1.5) * gridSize)
+				.attr("id", d => "forecast" + d.day + "," + d.hour)
+				.attr("onmouseover", d => "document.getElementById('forecast" + d.day + "," + d.hour + "').style.display = 'block'")
+				.attr("onmouseout", d => "document.getElementById('forecast" + d.day + "," + d.hour + "').style.display = 'none'")
+				.style("text-anchor", "middle").style("display", "none").style("fill", "white").style("font", "12px sans-serif");
+			cards.enter().append("text")
+                .text(d => d.temperature)
+                .attr("x", d => (d.hour + 1.5) * gridSize).attr("y", (d, i) => (d.day + 1.75) * gridSize)
+				.attr("id", d => "temp" + d.day + "," + d.hour)
+				.attr("onmouseover", d => "document.getElementById('forecast" + d.day + "," + d.hour + "').style.display = 'block'")
+				.attr("onmouseout", d => "document.getElementById('forecast" + d.day + "," + d.hour + "').style.display = 'none'")
+				.style("text-anchor", "middle").style("fill", "white").style("font", "12px sans-serif");
             cards.exit().remove();
 		};
 		
@@ -224,8 +232,8 @@
 			}
 			return result;
 		};
-        
-        getTopOffset = () => document.querySelector('#currLocation').parentElement.offsetHeight + 15;
+		
+		getTopOffset = () => document.querySelector('#currLocation').parentElement.offsetHeight + 15;
 
 		parseConditions = conditions => {
 			if (conditions.properties && conditions.properties.barometricPressure &&
@@ -292,11 +300,18 @@
 				buildAlternates(distStations);
 				startCall("https://api.weather.gov/stations/" + distStations[0].properties.stationIdentifier + "/observations/latest", parseConditions);
 			};
+			
+		parseHeadlines = headlines => setText("headlines", headlines['@graph'][0].content);
+		
+		getForecastByOffice = ptOffice => {
+			startCall(ptOffice.properties.forecastHourly, parseForecast);
+			//startCall("https://api.weather.gov/offices/" + ptOffice.properties.cwa + "/headlines", parseHeadlines);
+		}
 
 		findStationByPosition = pos => {
 			document.getElementById("currLocation").value = pos;
 			startCall("https://api.weather.gov/points/" + pos + "/stations", getMyConditions(pos.split(",").reverse()));
-			startCall("https://api.weather.gov/points/" + pos + "/forecast/hourly", parseForecast);
+			startCall("https://api.weather.gov/points/" + pos, getForecastByOffice);
 		};
 		
 		getStation = () => {
@@ -325,6 +340,7 @@
 			<div id="barometricPressure"></div>
 			<div id="precipitation"></div>
 		</div>
+		<div id="headlines"></div>
 		<div id="searchResults" class="centered"></div>
 	</body>
 </html>
