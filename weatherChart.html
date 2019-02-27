@@ -301,11 +301,11 @@
 				startCall("https://api.weather.gov/stations/" + distStations[0].properties.stationIdentifier + "/observations/latest", parseConditions);
 			};
 			
-		parseHeadlines = headlines => setText("headlines", headlines['@graph'][0].content);
+		parseHeadlines = headlines => document.getElementById("headlines").innerHTML = headlines['@graph'][0].content;
 		
 		getForecastByOffice = ptOffice => {
 			startCall(ptOffice.properties.forecastHourly, parseForecast);
-			//startCall("https://api.weather.gov/offices/" + ptOffice.properties.cwa + "/headlines", parseHeadlines);
+			startCall("https://api.weather.gov/offices/" + ptOffice.properties.cwa + "/headlines", parseHeadlines);
 		}
 
 		findStationByPosition = pos => {
@@ -340,7 +340,7 @@
 			<div id="barometricPressure"></div>
 			<div id="precipitation"></div>
 		</div>
-		<div id="headlines"></div>
+		<div id="headlines" class="centered" style="display:none"></div>
 		<div id="searchResults" class="centered"></div>
 	</body>
 </html>
