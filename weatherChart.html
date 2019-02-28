@@ -137,22 +137,22 @@
                 .attr("class", "hour bordered")
                 .attr("width", gridSize).attr("height", gridSize)
                 .attr("xlink:href", d => d.icon)
-				.attr("onmouseover", d => "document.getElementById('forecast" + d.day + "," + d.hour + "').style.display = 'block'")
-				.attr("onmouseout", d => "document.getElementById('forecast" + d.day + "," + d.hour + "').style.display = 'none'")
-				.attr("ontouchstart", d => "document.getElementById('forecast" + d.day + "," + d.hour + "').style.display = 'block'")
-				.attr("ontouchend", d => "document.getElementById('forecast" + d.day + "," + d.hour + "').style.display = 'none'");
+				.attr("onmouseover", d => "toggleText('" + d.day + "," + d.hour + "')")
+				.attr("onmouseout", d => "toggleText('" + d.day + "," + d.hour + "')")
+				.attr("ontouchstart", d => "toggleText('" + d.day + "," + d.hour + "')")
+				.attr("ontouchend", d => "toggleText('" + d.day + "," + d.hour + "')");
 			cards.enter().append("text").text(d => d.shortForecast)
                 .attr("x", d => (d.hour + 1.5) * gridSize).attr("y", (d, i) => (d.day + 1.5) * gridSize)
 				.attr("id", d => "forecast" + d.day + "," + d.hour)
-				.attr("onmouseover", d => "document.getElementById('forecast" + d.day + "," + d.hour + "').style.display = 'block'")
-				.attr("onmouseout", d => "document.getElementById('forecast" + d.day + "," + d.hour + "').style.display = 'none'")
+				.attr("onmouseover", d => "toggleText('" + d.day + "," + d.hour + "')")
+				.attr("onmouseout", d => "toggleText('" + d.day + "," + d.hour + "')")
 				.style("text-anchor", "middle").style("display", "none").style("fill", "white").style("font", "12px sans-serif");
 			cards.enter().append("text")
                 .text(d => d.temperature)
                 .attr("x", d => (d.hour + 1.5) * gridSize).attr("y", (d, i) => (d.day + 1.75) * gridSize)
 				.attr("id", d => "temp" + d.day + "," + d.hour)
-				.attr("onmouseover", d => "document.getElementById('forecast" + d.day + "," + d.hour + "').style.display = 'block'")
-				.attr("onmouseout", d => "document.getElementById('forecast" + d.day + "," + d.hour + "').style.display = 'none'")
+				.attr("onmouseover", d => "toggleText('" + d.day + "," + d.hour + "')")
+				.attr("onmouseout", d => "toggleText('" + d.day + "," + d.hour + "')")
 				.style("text-anchor", "middle").style("fill", "white").style("font", "12px sans-serif");
             cards.exit().remove();
 		};
@@ -329,6 +329,10 @@
 			document.getElementById("currLocation").value = document.getElementById("locations").value;
 			getStation();
 		};
+
+		negateDisplay = display => (display === 'block') ? 'none' : 'block';
+
+		toggleText = cell => document.getElementById('forecast' + cell).style.display = negateDisplay(document.getElementById('forecast' + cell).style.display);
 		
 		window.onload = () => {
 			document.querySelector('#refresh').addEventListener('click', getStation);
