@@ -46,7 +46,7 @@
 				position: fixed;
 			}
 
-			#searchResults {
+			#searchResults, #alerts {
 				position:relative;
 			}
 			
@@ -196,10 +196,7 @@
 
 		parseForecast = forecast => {
 			if (forecast.properties && forecast.properties.periods) {
-				heatmapChart("#searchResults", forecast.properties.periods, getTopOffset());
-				//forecast.properties.periods.forEach(currPeriod =>
-				//	addRow(currPeriod.icon, currPeriod.shortForecast, getDate(currPeriod.startTime),
-				//		currPeriod.temperature, getDate(currPeriod.endTime), getWind(currPeriod)));
+				heatmapChart("#searchResults", forecast.properties.periods, getTopOffset('#conditionsBox'));
 			}
 		};
 		
@@ -233,7 +230,7 @@
 			return result;
 		};
 		
-		getTopOffset = () => document.querySelector('#currLocation').parentElement.offsetHeight + 15;
+		getTopOffset = (...locAbove) => locAbove.map(x => document.querySelector(x).offsetHeight).reduce((acc, curr) => acc + curr, 15);
 
 		parseConditions = conditions => {
 			if (conditions.properties && conditions.properties.barometricPressure &&
@@ -253,7 +250,8 @@
 				
 				setImage(conditions.properties.icon.replace("medium", "large"));
 				
-				document.querySelector('#searchResults').style.top = getTopOffset() + "px";
+				document.querySelector('#alerts').style.top = getTopOffset('#conditionsBox') + "px";
+				document.querySelector('#searchResults').style.top = getTopOffset('#conditionsBox', '#alerts') + "px";
 			}
 		};
 		
@@ -300,12 +298,20 @@
 				buildAlternates(distStations);
 				startCall("https://api.weather.gov/stations/" + distStations[0].properties.stationIdentifier + "/observations/latest", parseConditions);
 			};
-			
-		parseHeadlines = headlines => document.getElementById("headlines").innerHTML = headlines['@graph'][0].content;
+
+		buildAlertText = features => features.map(f => f.properties.description.replace(/(\r\n|\n|\r)/gm," ").trim()).join("<BR>");
+		
+		parseAlerts = alerts => {
+			setText("alerts",
+				(alerts.features && alerts.features.length) ? buildAlertText(alerts.features) : '');
+			document.querySelector('#searchResults').style.top = getTopOffset('#conditionsBox', '#alerts') + "px";
+		};
+		
+		findZone = forecastZone => forecastZone.substring(forecastZone.lastIndexOf("/") + 1);
 		
 		getForecastByOffice = ptOffice => {
 			startCall(ptOffice.properties.forecastHourly, parseForecast);
-			startCall("https://api.weather.gov/offices/" + ptOffice.properties.cwa + "/headlines", parseHeadlines);
+			startCall("https://api.weather.gov/alerts/active?zone=" + findZone(ptOffice.properties.forecastZone), parseAlerts);
 		}
 
 		findStationByPosition = pos => {
@@ -332,7 +338,7 @@
 		};
 	</script>
 	<body>
-		<div class="conditions centered">
+		<div class="conditions centered" id="conditionsBox">
 			<label for="location">Location: </label><input type="text" id="currLocation" name="location">
 			<input type="button" value="Refresh" id="refresh">
 			<div><h3>Weather</h3> (conditions as of <span id="currTime"></span> @ <select id="locations"></select>)</div>
@@ -340,7 +346,7 @@
 			<div id="barometricPressure"></div>
 			<div id="precipitation"></div>
 		</div>
-		<div id="headlines" class="centered" style="display:none"></div>
+		<div id="alerts" class="centered"></div>
 		<div id="searchResults" class="centered"></div>
 	</body>
 </html>
