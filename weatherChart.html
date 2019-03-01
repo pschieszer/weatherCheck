@@ -61,6 +61,8 @@
 				stroke-width:2px;
 			}
 		</style>
+		<script src="http://d3js.org/d3.v3.js"></script>
+
 		<meta name="author" content="Patrick Schieszer">
 		<meta name="description" content="Weather checker">
 		<meta name="robots" content="all">
@@ -71,17 +73,13 @@
 		const HOME_LOC = "38.6270074,-90.1912848";
 		const hourFormat = { weekday: 'short', hour: 'numeric'};
 		const dowFormat = { weekday: 'short' };
-		const hourOnlyFormat = { hour: 'numeric'};
 		const hourMinFormat = { weekday: 'short', hour: 'numeric', minute: 'numeric' };
 		const geoHeaders = { headers: { "accept": "application/geo+json" } };
 		const geoOptions = { maximumAge: 5 * 60 * 1000, timeout: 5 * 1000 };
 		
 		function HourGrid(forecast) {
 			this.forecast = forecast;
-			this.dayOffs = function* () {
-				for (var result = 0; result < this.forecast.length; result += 24) yield result;
-				yield this.forecast.length - 1;
-			};
+			this.dayOffs = [0, 24, 48, 72, 96, 120, 144];
 			this.offset = (-1) * new Date(this.forecast[0].startTime).getHours();
 			this.findNdx = (day, hour) => (day * 24) + hour;
             this.getHour = (day, hour) => {
@@ -90,106 +88,107 @@
 					{ 'day': day, 'hour': hour, foreNdx: forecastNdx, ...forecast[forecastNdx] } :
 					{ 'day': day, 'hour': hour, foreNdx: forecastNdx };
 			};
-			this.getDayNames = () => [...this.dayOffs()].map(x => formatDate(new Date(forecast[x].startTime), dowFormat)).filter((v, i, a) => i == 0 || a[i - 1] !== a[i]);
+			this.getDayNames = () => this.dayOffs.map(x => formatDate(new Date(forecast[x].startTime), dowFormat));
             this.getAllDays = function* () {
-				for (var day = 0; day < 8; day++)
+				for (var day = 0; day < 7; day++)
 					for (var hour = 0; hour < 24; hour++)
 						yield this.getHour(day, hour);
 			};
-			this.getHourNames = () => {
-				const result = [];
-				for (var hour = 0; hour < 24; hour++)
-					result.push(formatDate(new Date(this.getHour(1, hour).startTime), hourOnlyFormat).toLowerCase());
-				return result;
-			};
         }
-		
-		buildDayLabel = (day, ndx, gridSize) => {
-			const result = document.createElementNS("http://www.w3.org/2000/svg", "text");
-			result.setAttribute("x", gridSize / 2);
-			result.setAttribute("y", (ndx + 1.5) * gridSize);
-			result.setAttribute("class", "dow");
-			result.appendChild(document.createTextNode(day));
-			return result;
-		};
-		
-		buildHourLabel = (hour, ndx, gridSize) => {
-			const result = document.createElementNS("http://www.w3.org/2000/svg", "text");
-			result.setAttribute("x", (ndx + 1.5) * gridSize);
-			result.setAttribute("y", gridSize / 2);
-			result.setAttribute("class", "label");
-			result.appendChild(document.createTextNode(hour));
-			return result;
-		};
-		
-		buildCell = (forecast, ndx, gridSize) => {
-			const coords = new String(forecast.day).padStart(2, '0') + "," + new String(forecast.hour).padStart(2, '0');
-			const imgTag = document.createElementNS("http://www.w3.org/2000/svg", "image");
-			const eventHandler = "toggleText('" + coords + "')"
-			imgTag.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', forecast.icon);
-			imgTag.setAttribute("x", (forecast.hour + 1) * gridSize);
-			imgTag.setAttribute("y", (forecast.day + 1) * gridSize);
-			imgTag.setAttribute("class", "hour bordered");
-			imgTag.setAttribute("width", gridSize);
-			imgTag.setAttribute("height", gridSize);
-			imgTag.setAttribute("rx", 4);
-			imgTag.setAttribute("ry", 4);
-			imgTag.setAttribute("id", "img" + coords);
-			imgTag.setAttribute("onmouseover", eventHandler);
-			imgTag.setAttribute("onmouseout", eventHandler);
-			imgTag.setAttribute("ontouchstart", eventHandler);
-			imgTag.setAttribute("ontouchend", eventHandler);
-			
-			const textX = (forecast.hour + 1.5) * gridSize
-			const forecastTag = document.createElementNS("http://www.w3.org/2000/svg", "text");
-			forecastTag.setAttributeNS(null, "x", textX);
-			forecastTag.setAttributeNS(null, "y", (forecast.day + 1.5) * gridSize);
-			forecastTag.setAttribute("id", "forecast" + coords);
-			forecastTag.setAttribute("onmouseover", eventHandler);
-			forecastTag.setAttribute("onmouseout", eventHandler);
-			forecastTag.setAttribute("class", "label");
-			forecastTag.setAttribute("style", "display: none;");
-			forecastTag.appendChild(document.createTextNode(forecast.shortForecast));
-			
-			const tempTag = document.createElementNS("http://www.w3.org/2000/svg", "text");
-			tempTag.setAttributeNS(null, "x", textX);
-			tempTag.setAttributeNS(null, "y", (forecast.day + 1.75) * gridSize);
-			tempTag.setAttribute("id", "temp" + coords);
-			tempTag.setAttribute("onmouseover", eventHandler);
-			tempTag.setAttribute("onmouseout", eventHandler);
-			tempTag.setAttribute("class", "label");
-			tempTag.appendChild(document.createTextNode(forecast.temperature));
-			
-			return [ imgTag, forecastTag, tempTag ];
-		};
-		
-		compTag = (l, r) => (l.tagName < r.tagName) ? -1 : (l.tagName > r.tagName) ? 1 : (l.id < r.id) ? -1 : (l.id > r.id) ? 1 : 0;
 
-		buildSvgTag = (foreGrid, topOffset) => {
-			const gridSize = Math.floor(window.innerWidth / 26);
-			const result = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-			result.setAttribute("width", window.innerWidth);
-			result.setAttribute("height", window.innerHeight - topOffset);
-			result.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
-			result.setAttribute('xmlns', "http://www.w3.org/2000/svg");
-			const styleTag = document.createElementNS("http://www.w3.org/2000/svg", "style");
-			styleTag.appendChild(document.createTextNode(".dow { text-anchor: end; fill: white; font: 12px sans-serif; } .label { text-anchor: middle; fill: white; font: 12px sans-serif; }"));
-			result.appendChild(styleTag);
-			const allElems = [];
-			foreGrid.getDayNames().map((x, ndx) => buildDayLabel(x, ndx, gridSize)).forEach(x => allElems.push(x));
-			foreGrid.getHourNames().map((x, ndx) => buildHourLabel(x, ndx, gridSize)).forEach(x => allElems.push(x));
-			[...foreGrid.getAllDays()].filter(x => x.shortForecast).map((x, ndx) => buildCell(x, ndx, gridSize)).forEach(x => x.forEach(cell => allElems.push(cell)));
-			allElems.sort(compTag).forEach(x => result.appendChild(x));
-			return result;
-		};
+		heatmapChart = (chartId, forecast, topOffset) => {
+            let foreGrid = new HourGrid(forecast);
+			let margin = { top: 50, right: 0, bottom: 100, left: 30  },
+				width = window.innerWidth - margin.left - margin.right,
+				height = window.innerHeight - topOffset - margin.top - margin.bottom,
+				gridSize = Math.floor(width / 26),
+				buckets = 9,
+				days = foreGrid.getDayNames(),
+				times = ["mid", "1a", "2a", "3a", "4a", "5a", "6a", "7a", "8a", "9a", "10a", "11a", "noon", "1p", "2p", "3p", "4p", "5p", "6p", "7p", "8p", "9p", "10p", "11p"];
+				
+			let svg = d3.select(chartId)
+				.append("svg").attr("width", width + margin.left + margin.right).attr("height", height + margin.top + margin.bottom)
+				.append("g");
 
-		heatmapChart = (chartId, forecast, topOffset) => document.getElementById(chartId).appendChild(buildSvgTag(new HourGrid(forecast), topOffset));
+			let dayLabels = svg.selectAll(".dayLabel")
+				.data(days).enter().append("text")
+                .text(d => d)
+                .attr("x", gridSize / 2)
+                .attr("y", (d, i) => (i + 1.5) * gridSize)
+				.style("text-anchor", "end").style("fill", "white")
+                .style("font", "12px sans-serif");
+				
+			let timeLabels = svg.selectAll(".timeLabel")
+				.data(times)
+				.enter().append("text")
+				.text(d => d)
+				.attr("x", (d, i) => (i + 1.5) * gridSize)
+				.attr("y", gridSize / 2)
+				.style("text-anchor", "middle").style("fill", "white")
+                .style("font", "12px sans-serif");
+				
+			let cards = svg.selectAll(".hour").data([...foreGrid.getAllDays()], d => formatDate(d.startTime));
+			
+			cards.append("title");
+			
+			cards.enter()
+                .append("image").attr("x", d => (d.hour + 1) * gridSize).attr("y", d => (d.day + 1) * gridSize)
+                .attr("rx", 4).attr("ry", 4).attr("id", d => "img" + d.day + "," + d.hour)
+                .attr("class", "hour bordered")
+                .attr("width", gridSize).attr("height", gridSize)
+                .attr("xlink:href", d => d.icon)
+				.attr("onmouseover", d => "toggleText('" + d.day + "," + d.hour + "')")
+				.attr("onmouseout", d => "toggleText('" + d.day + "," + d.hour + "')")
+				.attr("ontouchstart", d => "toggleText('" + d.day + "," + d.hour + "')")
+				.attr("ontouchend", d => "toggleText('" + d.day + "," + d.hour + "')");
+			cards.enter().append("text").text(d => d.shortForecast)
+                .attr("x", d => (d.hour + 1.5) * gridSize).attr("y", (d, i) => (d.day + 1.5) * gridSize)
+				.attr("id", d => "forecast" + d.day + "," + d.hour)
+				.attr("onmouseover", d => "toggleText('" + d.day + "," + d.hour + "')")
+				.attr("onmouseout", d => "toggleText('" + d.day + "," + d.hour + "')")
+				.style("text-anchor", "middle").style("display", "none").style("fill", "white").style("font", "12px sans-serif");
+			cards.enter().append("text")
+                .text(d => d.temperature)
+                .attr("x", d => (d.hour + 1.5) * gridSize).attr("y", (d, i) => (d.day + 1.75) * gridSize)
+				.attr("id", d => "temp" + d.day + "," + d.hour)
+				.attr("onmouseover", d => "toggleText('" + d.day + "," + d.hour + "')")
+				.attr("onmouseout", d => "toggleText('" + d.day + "," + d.hour + "')")
+				.style("text-anchor", "middle").style("fill", "white").style("font", "12px sans-serif");
+            cards.exit().remove();
+		};
 		
 		getDateString = (date, dateFormat) => new Intl.DateTimeFormat('en-US', dateFormat).format(date);
 		
 		formatDate = (date, dateFormat = hourFormat) => (date instanceof Date) ? getDateString(date, dateFormat) : date;
+		
+		buildCell = x => {
+			const td = document.createElement('TD');
+			td.appendChild(x);
+			return td;
+		};
 
+		buildTextCell = x => buildCell(document.createTextNode(x));
+		
+		buildImage = (src, text) => {
+			const img = new Image();
+			img.src = src;
+			img.title = img.alt = text;
+			return img;
+		};
+		
 		getDateRange = (start, end) => formatDate(start) + " to " + formatDate(end);
+
+		addRow = (image, imageAlt, start, temp, end, wind) => {
+			const tableBody = document.getElementById("data");
+			const tr = document.createElement('TR');
+			const td = (image && image.length > 0) ? 
+			buildCell(buildImage(image, imageAlt)) : buildTextCell(image);
+			tr.appendChild(td);
+			
+			const elemTexts = [ getDateRange(start, end), temp, wind ];
+			elemTexts.map(buildTextCell).forEach(x => tr.appendChild(x));
+			tableBody.appendChild(tr);
+		};
 
 		getDate = strDate => new Date(strDate);
 		
@@ -197,7 +196,7 @@
 
 		parseForecast = forecast => {
 			if (forecast.properties && forecast.properties.periods) {
-				heatmapChart("searchResults", forecast.properties.periods, getTopOffset('#conditionsBox'));
+				heatmapChart("#searchResults", forecast.properties.periods, getTopOffset('#conditionsBox'));
 			}
 		};
 		
