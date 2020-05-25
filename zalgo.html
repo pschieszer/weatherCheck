@@ -1,14 +1,7 @@
 <html>
 	<head>
-		<style type="text/css">
-            .col {
-              flex: 1;
-            }
-           .inp {
-                width: 40%;
-                text-align: left;
-            }
-		</style>
+		<link rel="stylesheet" href="https://getbootstrap.com/docs/4.0/dist/css/bootstrap.min.css">
+		<script src="https://getbootstrap.com/docs/4.0/dist/js/bootstrap.min.js"></script>
 		<script>
 		  // Put up to this.options.maxHeight random diacritics on top.
 		  // optionally fluctuate the number via the randomization value (0-100%)
@@ -103,27 +96,47 @@
 		</script>
 	</head>
 	<body>
-		<input type="checkbox" id="top" name="top" value="Top" checked>
-		<label for="top">Top</label>
-		<input type="checkbox" id="middle" name="middle" value="Middle">
-		<label for="middle">Middle</label>
-		<input type="checkbox" id="bottom" name="bottom" value="Bottom" checked>
-		<label for="bottom">Bottom</label>
-		<select id="maxHeight">
-			<option value="1">1</option>
-			<option value="3">3</option>
-			<option value="5" selected>5</option>
-			<option value="7">7</option>
-			<option value="9">9</option>
-			<option value="11">11</option>
-			<option value="13">13</option>
-			<option value="15">15</option>
-		</select>
-		<br />
-		<input type="text" id="testText" class="col inp" name="testText">
-		<br /><br /><br /><br />
-		<div id="testResult" class="flex-grid"></div>
-		<br /><br /><br /><br />
-		<button id="copy">Copy</button>
+		<main role="main" class="container">
+			<div class="row">
+				<div class="col-2 text-right">
+					<label for="testText">Human Text</label>
+				</div>
+				<div class="col-6">
+					<input type="text" id="testText" class="col inp" name="testText">
+				</div>
+				<div class="col-4">
+					<input type="checkbox" id="top" name="top" value="Top" checked>
+					<label for="top">Top</label>
+					<input type="checkbox" id="middle" name="middle" value="Middle">
+					<label for="middle">Middle</label>
+					<input type="checkbox" id="bottom" name="bottom" value="Bottom" checked>
+					<label for="bottom">Bottom</label>
+					<select id="maxHeight">
+						<option value="1">1</option>
+						<option value="3">3</option>
+						<option value="5" selected>5</option>
+						<option value="7">7</option>
+						<option value="9">9</option>
+						<option value="11">11</option>
+						<option value="13">13</option>
+						<option value="15">15</option>
+					</select>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-8">&nbsp;</div>
+			</div>
+			<div class="row">
+				<div class="col-2 text-right">
+					<label for="testResult">from outside the Basic Multilingual Plane</label>
+				</div>
+				<div class="col-6 text-center">
+					<div id="testResult"></div>
+				</div>
+				<div class="col-4">
+					<button id="copy">Copy</button>
+				</div>
+			</div>
+		</main>
 	</body>
 </html>
