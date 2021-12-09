@@ -26,8 +26,8 @@ class HourGrid {
 
     getHour(day, hour) {
         let forecastNdx = this.offset + this.findNdx(day, hour);
-        return (forecastNdx > -1 && forecastNdx < forecast.length) ?
-            { 'day': day, 'hour': hour, foreNdx: forecastNdx, ...forecast[forecastNdx] } :
+        return (forecastNdx > -1 && forecastNdx < this.forecast.length) ?
+            { 'day': day, 'hour': hour, foreNdx: forecastNdx, ...this.forecast[forecastNdx] } :
             { 'day': day, 'hour': hour, foreNdx: forecastNdx };
     }
 
