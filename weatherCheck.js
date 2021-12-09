@@ -10,17 +10,17 @@ const geoOptions = { maximumAge: 5 * 60 * 1000, timeout: 5 * 1000 };
 
 class HourGrid {
     forecast;
+    offset;
 
     constructor(forecast) {
         this.forecast = forecast;
+        this.offset = (-1) * new Date(this.forecast[0].startTime).getHours();
     }
 
     * dayOffs() {
-        for (var result = 0; result < this.forecast.length; result += 24) yield result;
+        for (const result = 0; result < this.forecast.length; result += 24) yield result;
         yield this.forecast.length - 1;
     }
-
-    offset = (-1) * new Date(this.forecast[0].startTime).getHours();
 
     findNdx(day, hour) { return (day * 24) + hour; }
 
@@ -36,14 +36,14 @@ class HourGrid {
     }
 
     * getAllDays() {
-        for (var day = 0; day < 8; day++)
-            for (var hour = 0; hour < 24; hour++)
+        for (const day = 0; day < 8; day++)
+            for (const hour = 0; hour < 24; hour++)
                 yield this.getHour(day, hour);
     }
 
     getHourNames() {
         const result = [];
-        for (var hour = 0; hour < 24; hour++)
+        for (const hour = 0; hour < 24; hour++)
             result.push(formatDate(new Date(this.getHour(1, hour).startTime), hourOnlyFormat).toLowerCase());
         return result;
     };
@@ -161,7 +161,7 @@ const setImage = imgSrc => document.body.style.backgroundImage = "url(" + imgSrc
 const getInches = meters => meters * inPerMeter;
 
 const formatPrecipitation = properties => {
-    var result = "";
+    let result = "";
     if (properties.precipitationLastHour.value) {
         result += formattedNum(getInches(properties.precipitationLastHour.value)) + "in precipitation in past hour";
     }
@@ -233,7 +233,7 @@ const loadOption = (opt, { geometry: { coordinates: [long, lat] }, properties: {
 const buildOption = station => loadOption(document.createElement("option"), station);
 
 const buildAlternates = distStations => {
-    var locs = document.getElementById("locations");
+    const locs = document.getElementById("locations");
     if (locs.options.length) Array.from(Array(locs.options.length)).forEach(x => locs.remove(0));
     distStations.map(buildOption).forEach(opt => locs.add(opt, null));
 };
