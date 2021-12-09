@@ -38,8 +38,8 @@ class HourGrid {
     }
 
     * getAllDays() {
-        for (const day = 0; day < 8; day++)
-            for (const hour = 0; hour < 24; hour++)
+        for (let day = 0; day < 8; day++)
+            for (let hour = 0; hour < 24; hour++)
                 yield this.getHour(day, hour);
     }
 
