@@ -45,7 +45,7 @@ class HourGrid {
 
     getHourNames() {
         const result = [];
-        for (const hour = 0; hour < 24; hour++)
+        for (let hour = 0; hour < 24; hour++)
             result.push(formatDate(new Date(this.getHour(1, hour).startTime), hourOnlyFormat).toLowerCase());
         return result;
     };
