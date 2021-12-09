@@ -32,7 +32,9 @@ class HourGrid {
     }
 
     getDayNames() {
-        return [...this.dayOffs()].map(x => formatDate(new Date(forecast[x].startTime), dowFormat)).filter((v, i, a) => i == 0 || a[i - 1] !== a[i]);
+        return [...this.dayOffs()]
+            .map(x => formatDate(new Date(this.forecast[x].startTime), dowFormat))
+            .filter((v, i, a) => i == 0 || a[i - 1] !== a[i]);
     }
 
     * getAllDays() {
