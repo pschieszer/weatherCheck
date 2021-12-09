@@ -18,7 +18,7 @@ class HourGrid {
     }
 
     * dayOffs() {
-        for (const result = 0; result < this.forecast.length; result += 24) yield result;
+        for (let result = 0; result < this.forecast.length; result += 24) yield result;
         yield this.forecast.length - 1;
     }
 
