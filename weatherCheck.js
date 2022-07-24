@@ -282,9 +282,12 @@ const negateDisplay = display => (display === 'block') ? 'none' : 'block';
 
 const toggleText = cell => document.getElementById('forecast' + cell).style.display = negateDisplay(document.getElementById('forecast' + cell).style.display);
 
+const handleVisibilityChange = () => document.visibilityState === 'visible' && getStation();
+
 window.onload = () => {
     document.querySelector('#refresh').addEventListener('click', getStation);
     document.querySelector('#currLocation').addEventListener('change', getStation);
     document.getElementById("locations").addEventListener('change', useSelectedLocation);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     getStation();
 };
